@@ -26,7 +26,7 @@ function App() {
 
   return (
     <Router>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-col md:flex-row h-screen overflow-hidden">
         <Sidebar
           username={username}
           userId={userId}
@@ -38,23 +38,23 @@ function App() {
           onAddFriendClick={() => setShowAddFriend(true)}
         />
         
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <MapView userId={userId} username={username} />
           
           {showChat && (
-            <div className="absolute bottom-4 right-4 z-[1000]">
+            <div className="absolute bottom-4 right-4 z-[1000] w-full max-w-sm md:max-w-md">
               <ChatPanel userId={userId} onClose={() => setShowChat(false)} />
             </div>
           )}
           
           {showVideoCall && (
-            <div className="absolute top-4 right-4 z-[1000]">
+            <div className="absolute top-4 right-4 z-[1000] w-full max-w-sm md:max-w-md">
               <VideoCall userId={userId} onClose={() => setShowVideoCall(false)} />
             </div>
           )}
           
           {showMusic && (
-            <div className="absolute top-4 left-4 z-[1000]">
+            <div className="absolute top-4 left-4 z-[1000] w-full max-w-sm md:max-w-md">
               <MusicSync userId={userId} onClose={() => setShowMusic(false)} />
             </div>
           )}
@@ -66,13 +66,13 @@ function App() {
           )}
 
           {showProfile && (
-            <div className="absolute top-4 left-24 z-[1000]">
+            <div className="absolute top-4 left-2 md:left-24 right-2 z-[1000] max-w-md mx-auto md:mx-0">
               <Profile userId={userId} onClose={() => setShowProfile(false)} />
             </div>
           )}
 
           {showAddFriend && (
-            <div className="absolute top-4 left-24 z-[1000]">
+            <div className="absolute top-4 left-2 md:left-24 right-2 z-[1000] max-w-md mx-auto md:mx-0">
               <AddFriend userId={userId} onClose={() => setShowAddFriend(false)} />
             </div>
           )}
