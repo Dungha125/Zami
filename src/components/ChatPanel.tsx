@@ -88,10 +88,30 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
     }
   }, [userId, selectedFriendId])
 
-  // Clear messages when friend selection changes
+  // Load chat history when friend selection changes
   useEffect(() => {
-    setMessages([])
-  }, [selectedFriendId])
+    if (selectedFriendId) {
+      loadChatHistory()
+    } else {
+      setMessages([])
+    }
+  }, [selectedFriendId, userId])
+
+  const loadChatHistory = async () => {
+    if (!selectedFriendId) return
+    try {
+      const response = await axios.get(getApiUrl(`api/users/${userId}/messages/${selectedFriendId}`))
+      const historyMessages = (response.data.messages || []).map((msg: any) => ({
+        sender_id: msg.sender_id,
+        content: msg.content,
+        sticker: msg.sticker,
+        timestamp: msg.timestamp
+      }))
+      setMessages(historyMessages)
+    } catch (error) {
+      console.error('Error loading chat history:', error)
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -111,16 +131,9 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
         content: input.trim()
       }
       
-      // Add message to local state immediately for instant feedback
-      const newMessage: Message = {
-        sender_id: userId,
-        content: input.trim(),
-        timestamp: new Date().toISOString()
-      }
-      setMessages(prev => [...prev, newMessage])
       setInput('')
       
-      // Send to server
+      // Send to server - message will be added when received from WebSocket
       wsRef.current.send(JSON.stringify(messageToSend))
     }
   }
@@ -138,16 +151,9 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
         sticker: stickerId
       }
       
-      // Add sticker to local state immediately
-      const newMessage: Message = {
-        sender_id: userId,
-        sticker: stickerId,
-        timestamp: new Date().toISOString()
-      }
-      setMessages(prev => [...prev, newMessage])
       setShowStickers(false)
       
-      // Send to server
+      // Send to server - message will be added when received from WebSocket
       wsRef.current.send(JSON.stringify(messageToSend))
     }
   }
@@ -272,7 +278,11 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
                       )}
                       {msg.content && <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>}
                       <p className={`text-xs mt-1 ${msg.sender_id === userId ? 'opacity-80' : 'opacity-60'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(msg.timestamp).toLocaleTimeString('vi-VN', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          timeZone: 'Asia/Ho_Chi_Minh'
+                        })}
                       </p>
                     </div>
                   </motion.div>
