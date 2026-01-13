@@ -21,8 +21,13 @@ interface IncomingCall {
 }
 
 function App() {
-  const [userId, setUserId] = useState<string | null>(null)
-  const [username, setUsername] = useState<string>('')
+  // Load saved credentials from localStorage
+  const [userId, setUserId] = useState<string | null>(() => {
+    return localStorage.getItem('userId')
+  })
+  const [username, setUsername] = useState<string>(() => {
+    return localStorage.getItem('username') || ''
+  })
   const [showChat, setShowChat] = useState(false)
   const [showVideoCall, setShowVideoCall] = useState(false)
   const [showMusic, setShowMusic] = useState(false)
@@ -31,34 +36,67 @@ function App() {
   const [showAddFriend, setShowAddFriend] = useState(false)
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
 
+  // Handle login and save to localStorage
+  const handleLogin = (id: string, name: string) => {
+    setUserId(id)
+    setUsername(name)
+    localStorage.setItem('userId', id)
+    localStorage.setItem('username', name)
+  }
+
+  // Handle logout
+  const handleLogout = () => {
+    setUserId(null)
+    setUsername('')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('username')
+    setShowProfile(false)
+  }
+
   // Listen for incoming calls
   useEffect(() => {
     if (!userId) return
 
     const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
     
+    ws.onopen = () => {
+      console.log('Call notification WebSocket connected')
+    }
+    
     ws.onmessage = async (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'webrtc_offer' && message.sender_id !== userId) {
-        // Load caller profile
-        try {
-          const response = await axios.get(getApiUrl(`api/users/${message.sender_id}/profile`))
-          setIncomingCall({
-            callerId: message.sender_id,
-            callerName: response.data.username || message.sender_id,
-            callerAvatar: response.data.avatar || null,
-            offer: message.offer
-          })
-        } catch (error) {
-          console.error('Error loading caller profile:', error)
-          setIncomingCall({
-            callerId: message.sender_id,
-            callerName: message.sender_id,
-            callerAvatar: null,
-            offer: message.offer
-          })
+      try {
+        const message = JSON.parse(event.data)
+        if (message.type === 'webrtc_offer' && message.sender_id !== userId) {
+          // Load caller profile
+          try {
+            const response = await axios.get(getApiUrl(`api/users/${message.sender_id}/profile`))
+            setIncomingCall({
+              callerId: message.sender_id,
+              callerName: response.data.username || message.sender_id,
+              callerAvatar: response.data.avatar || null,
+              offer: message.offer
+            })
+          } catch (error) {
+            console.error('Error loading caller profile:', error)
+            setIncomingCall({
+              callerId: message.sender_id,
+              callerName: message.sender_id,
+              callerAvatar: null,
+              offer: message.offer
+            })
+          }
         }
+      } catch (error) {
+        console.error('Error parsing call notification message:', error)
       }
+    }
+
+    ws.onerror = (error) => {
+      console.error('Call notification WebSocket error:', error)
+    }
+
+    ws.onclose = () => {
+      console.log('Call notification WebSocket closed')
     }
 
     return () => {
@@ -89,7 +127,7 @@ function App() {
   }, [showVideoCall, incomingCall])
 
   if (!userId) {
-    return <Login onLogin={(id, name) => { setUserId(id); setUsername(name) }} />
+    return <Login onLogin={handleLogin} />
   }
 
   return (
@@ -150,7 +188,7 @@ function App() {
 
           {showProfile && (
             <div className="absolute top-4 left-4 md:left-24 z-[1000] w-[calc(100%-2rem)] md:w-auto max-w-md">
-              <Profile userId={userId} onClose={() => setShowProfile(false)} />
+              <Profile userId={userId} onClose={() => setShowProfile(false)} onLogout={handleLogout} />
             </div>
           )}
 

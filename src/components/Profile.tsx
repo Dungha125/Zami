@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { XMarkIcon, CameraIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CameraIcon, CheckIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import axios from 'axios'
 import { getApiUrl } from '../config/api'
 
 interface ProfileProps {
   userId: string
   onClose: () => void
+  onLogout: () => void
 }
 
 interface UserProfile {
@@ -16,7 +17,7 @@ interface UserProfile {
   status: string
 }
 
-export default function Profile({ userId, onClose }: ProfileProps) {
+export default function Profile({ userId, onClose, onLogout }: ProfileProps) {
   const [profile, setProfile] = useState<UserProfile>({
     username: '',
     avatar: null,
@@ -184,9 +185,9 @@ export default function Profile({ userId, onClose }: ProfileProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4">
+        <div className="space-y-3 pt-4">
           {isEditing ? (
-            <>
+            <div className="flex gap-3">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -215,7 +216,7 @@ export default function Profile({ userId, onClose }: ProfileProps) {
                   </>
                 )}
               </motion.button>
-            </>
+            </div>
           ) : (
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -224,6 +225,23 @@ export default function Profile({ userId, onClose }: ProfileProps) {
               className="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-cute-pink to-cute-lavender text-white font-semibold transition-colors"
             >
               Chỉnh sửa hồ sơ
+            </motion.button>
+          )}
+          
+          {/* Logout Button */}
+          {!isEditing && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+                  onLogout()
+                }
+              }}
+              className="w-full px-4 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              Đăng xuất
             </motion.button>
           )}
         </div>
