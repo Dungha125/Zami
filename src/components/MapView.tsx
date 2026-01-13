@@ -38,7 +38,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
   onLocationsUpdate: (locs: Record<string, Location>) => void
 }) {
   const wsRef = useRef<WebSocket | null>(null)
-  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const watchIdRef = useRef<number | null>(null)
   const onLocationsUpdateRef = useRef(onLocationsUpdate)
 
   // Keep ref in sync
@@ -47,100 +47,97 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
   }, [onLocationsUpdate])
 
   useEffect(() => {
-    // Get user's current location
+    // Get user's current location with high accuracy
     const initLocation = () => {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude, accuracy } = position.coords
-            
-            // Connect WebSocket
-            const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
-            wsRef.current = ws
+        const geoOptions = {
+          enableHighAccuracy: true, // Use GPS for better accuracy
+          maximumAge: 0, // Don't use cached location
+          timeout: 10000 // 10 second timeout
+        }
+        
+        // Connect WebSocket first
+        const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
+        wsRef.current = ws
 
-            ws.onopen = () => {
+        ws.onopen = () => {
+          // Get initial location
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude, accuracy } = position.coords
+              
               // Send initial location
-              ws.send(JSON.stringify({
-                type: 'location_update',
-                lat: latitude,
-                lng: longitude,
-                accuracy: accuracy,
-                username: username
-              }))
-
-              // Update location periodically
-              locationIntervalRef.current = setInterval(() => {
-                if (navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                    if (ws.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
-                        type: 'location_update',
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        accuracy: pos.coords.accuracy,
-                        username: username
-                      }))
-                    }
-                  })
-                }
-              }, 5000) // Update every 5 seconds
-            }
-
-            ws.onmessage = (event) => {
-              const message = JSON.parse(event.data)
-              
-              if (message.type === 'location_update') {
-                onLocationsUpdateRef.current({
-                  [message.user_id]: message.location
-                })
-              } else if (message.type === 'initial_locations') {
-                const locs: Record<string, Location> = {}
-                message.locations.forEach((loc: Location) => {
-                  locs[loc.user_id] = loc
-                })
-                onLocationsUpdateRef.current(locs)
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'location_update',
+                  lat: latitude,
+                  lng: longitude,
+                  accuracy: accuracy,
+                  username: username
+                }))
               }
-            }
-
-            ws.onerror = (error) => {
-              console.error('WebSocket error:', error)
-            }
-
-            ws.onclose = () => {
-              console.log('WebSocket closed')
-            }
-          },
-          (error) => {
-            console.error('Geolocation error:', error)
-            // Fallback - still connect WebSocket
-            const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
-            wsRef.current = ws
-            
-            ws.onmessage = (event) => {
-              const message = JSON.parse(event.data)
               
-              if (message.type === 'location_update') {
-                onLocationsUpdateRef.current({
-                  [message.user_id]: message.location
-                })
-              } else if (message.type === 'initial_locations') {
-                const locs: Record<string, Location> = {}
-                message.locations.forEach((loc: Location) => {
-                  locs[loc.user_id] = loc
-                })
-                onLocationsUpdateRef.current(locs)
-              }
-            }
+              // Use watchPosition for continuous, accurate updates
+              watchIdRef.current = navigator.geolocation.watchPosition(
+                (pos) => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: 'location_update',
+                      lat: pos.coords.latitude,
+                      lng: pos.coords.longitude,
+                      accuracy: pos.coords.accuracy || 0,
+                      username: username
+                    }))
+                  }
+                },
+                (error) => {
+                  console.error('Geolocation watch error:', error)
+                },
+                geoOptions
+              )
+            },
+            (error) => {
+              console.error('Geolocation error:', error)
+            },
+            geoOptions
+          )
+
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data)
+          
+          if (message.type === 'location_update') {
+            onLocationsUpdateRef.current({
+              [message.user_id]: message.location
+            })
+          } else if (message.type === 'initial_locations') {
+            const locs: Record<string, Location> = {}
+            message.locations.forEach((loc: Location) => {
+              locs[loc.user_id] = loc
+            })
+            onLocationsUpdateRef.current(locs)
           }
-        )
+        }
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error)
+        }
+
+        ws.onclose = () => {
+          console.log('WebSocket closed')
+          if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current)
+            watchIdRef.current = null
+          }
+        }
       }
     }
 
     initLocation()
 
     return () => {
-      if (locationIntervalRef.current) {
-        clearInterval(locationIntervalRef.current)
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
       }
       if (wsRef.current) {
         wsRef.current.close()

@@ -38,7 +38,7 @@ function App() {
           onAddFriendClick={() => setShowAddFriend(true)}
         />
         
-        <div className="flex-1 relative mb-16 md:mb-0">
+        <div className="flex-1 relative mb-16 md:mb-0 md:ml-20">
           <MapView userId={userId} username={username} />
           
           {showChat && (
