@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -39,6 +39,12 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
 }) {
   const wsRef = useRef<WebSocket | null>(null)
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const onLocationsUpdateRef = useRef(onLocationsUpdate)
+
+  // Keep ref in sync
+  useEffect(() => {
+    onLocationsUpdateRef.current = onLocationsUpdate
+  }, [onLocationsUpdate])
 
   useEffect(() => {
     // Get user's current location
@@ -84,7 +90,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
               const message = JSON.parse(event.data)
               
               if (message.type === 'location_update') {
-                onLocationsUpdate({
+                onLocationsUpdateRef.current({
                   [message.user_id]: message.location
                 })
               } else if (message.type === 'initial_locations') {
@@ -92,7 +98,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
                 message.locations.forEach((loc: Location) => {
                   locs[loc.user_id] = loc
                 })
-                onLocationsUpdate(locs)
+                onLocationsUpdateRef.current(locs)
               }
             }
 
@@ -109,6 +115,22 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
             // Fallback - still connect WebSocket
             const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
             wsRef.current = ws
+            
+            ws.onmessage = (event) => {
+              const message = JSON.parse(event.data)
+              
+              if (message.type === 'location_update') {
+                onLocationsUpdateRef.current({
+                  [message.user_id]: message.location
+                })
+              } else if (message.type === 'initial_locations') {
+                const locs: Record<string, Location> = {}
+                message.locations.forEach((loc: Location) => {
+                  locs[loc.user_id] = loc
+                })
+                onLocationsUpdateRef.current(locs)
+              }
+            }
           }
         )
       }
@@ -124,7 +146,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
         wsRef.current.close()
       }
     }
-  }, [userId, username, onLocationsUpdate])
+  }, [userId, username])
 
   return null
 }
@@ -133,68 +155,119 @@ export default function MapView({ userId, username }: MapViewProps) {
   const [center, setCenter] = useState<[number, number]>([10.762622, 106.660172]) // Ho Chi Minh City
   const [locations, setLocations] = useState<Record<string, Location>>({})
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>({})
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set([userId]))
+  const centerSetRef = useRef(false)
 
+  // Load friends list
   useEffect(() => {
-    // Get initial location
-    if (navigator.geolocation) {
+    const loadFriends = async () => {
+      try {
+        const response = await axios.get(getApiUrl(`api/users/${userId}/friends`))
+        const friends = response.data.friends || []
+        const friendSet = new Set<string>()
+        // Always include current user
+        friendSet.add(userId)
+        // Add all friend IDs from the friends list (each friend has user_id property)
+        friends.forEach((f: any) => {
+          if (f.user_id && f.user_id !== userId) {
+            friendSet.add(f.user_id)
+          }
+        })
+        setFriendIds(friendSet)
+      } catch (error) {
+        console.error('Error loading friends:', error)
+        // On error, at least show current user
+        setFriendIds(new Set([userId]))
+      }
+    }
+    loadFriends()
+  }, [userId])
+
+  // Get initial location only once
+  useEffect(() => {
+    if (!centerSetRef.current && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setCenter([position.coords.latitude, position.coords.longitude])
+          centerSetRef.current = true
         },
         () => {
-          // Use default location
+          centerSetRef.current = true
         }
       )
     }
   }, [])
 
-  // Load profiles for all users in locations
+  // Filter locations to only show friends + current user
+  const filteredLocations = useMemo(() => {
+    const filtered: Record<string, Location> = {}
+    Object.entries(locations).forEach(([uid, loc]) => {
+      if (friendIds.has(uid)) {
+        filtered[uid] = loc
+      }
+    })
+    return filtered
+  }, [locations, friendIds])
+
+  // Load profiles for filtered users only
   useEffect(() => {
     const loadProfiles = async () => {
-      const userIds = Object.keys(locations)
-      const profiles: Record<string, UserProfile> = {}
+      const userIds = Object.keys(filteredLocations)
+      const newProfiles: Record<string, UserProfile> = {}
       
       for (const uid of userIds) {
+        // Skip if we already have this profile
+        if (userProfiles[uid]) {
+          newProfiles[uid] = userProfiles[uid]
+          continue
+        }
+        
         try {
           const response = await axios.get(getApiUrl(`api/users/${uid}/profile`))
-          profiles[uid] = {
+          newProfiles[uid] = {
             avatar: response.data.avatar || null,
-            username: response.data.username || locations[uid]?.username || uid
+            username: response.data.username || filteredLocations[uid]?.username || uid
           }
         } catch (error) {
           console.error(`Error loading profile for ${uid}:`, error)
-          profiles[uid] = {
+          newProfiles[uid] = {
             avatar: null,
-            username: locations[uid]?.username || uid
+            username: filteredLocations[uid]?.username || uid
           }
         }
       }
       
-      setUserProfiles(prev => ({ ...prev, ...profiles }))
+      if (Object.keys(newProfiles).length > 0) {
+        setUserProfiles(prev => ({ ...prev, ...newProfiles }))
+      }
     }
 
-    if (Object.keys(locations).length > 0) {
+    if (Object.keys(filteredLocations).length > 0) {
       loadProfiles()
     }
-  }, [locations])
+  }, [filteredLocations])
 
-  const handleLocationsUpdate = (newLocs: Record<string, Location>) => {
+  // Memoize handleLocationsUpdate to prevent WebSocket re-creation
+  const handleLocationsUpdate = useCallback((newLocs: Record<string, Location>) => {
     setLocations(prev => {
       const updated = { ...prev, ...newLocs }
-      // Center map on user's location
-      const userLocation = updated[userId]
-      if (userLocation) {
-        setCenter([userLocation.lat, userLocation.lng])
+      // Only center map on user's location once at the beginning
+      if (!centerSetRef.current) {
+        const userLocation = updated[userId]
+        if (userLocation) {
+          setCenter([userLocation.lat, userLocation.lng])
+          centerSetRef.current = true
+        }
       }
       return updated
     })
-  }
+  }, [userId])
 
-  // Create custom icon with avatar
-  const createCustomIcon = (user_id: string, isCurrentUser: boolean) => {
+  // Create custom icon with avatar - memoized
+  const createCustomIcon = useCallback((user_id: string, isCurrentUser: boolean) => {
     const profile = userProfiles[user_id]
     const avatar = profile?.avatar
-    const username = profile?.username || locations[user_id]?.username || user_id
+    const username = profile?.username || filteredLocations[user_id]?.username || user_id
     const initial = username.charAt(0).toUpperCase()
     const bgColor = isCurrentUser ? '#FFB6C1' : '#E6E6FA'
     
@@ -223,7 +296,7 @@ export default function MapView({ userId, username }: MapViewProps) {
       iconSize: [48, 48],
       iconAnchor: [24, 24],
     })
-  }
+  }, [userProfiles, filteredLocations])
 
   return (
     <div className="w-full h-full relative">
@@ -241,7 +314,7 @@ export default function MapView({ userId, username }: MapViewProps) {
         
         <MapUpdater userId={userId} username={username} onLocationsUpdate={handleLocationsUpdate} />
         
-        {Object.values(locations).map((location) => {
+        {Object.values(filteredLocations).map((location) => {
           const isCurrentUser = location.user_id === userId
           const accuracy = location.accuracy || 0
           

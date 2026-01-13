@@ -51,15 +51,15 @@ export default function Sidebar({
 
   return (
     <motion.div
-      initial={{ x: -100 }}
-      animate={{ x: 0 }}
-      className="w-20 bg-white/90 backdrop-blur-md shadow-xl flex flex-col items-center py-6 space-y-6"
+      initial={{ x: -100, y: 0 }}
+      animate={{ x: 0, y: 0 }}
+      className="fixed md:left-0 md:top-0 md:bottom-0 bottom-0 left-0 right-0 md:right-auto w-full md:w-20 h-16 md:h-auto bg-white/90 backdrop-blur-md shadow-xl flex flex-row md:flex-col items-center justify-around md:justify-start md:py-6 md:space-y-6 z-50 border-t md:border-t-0 md:border-r border-gray-200"
     >
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={onProfileClick}
-        className="flex flex-col items-center mb-4 cursor-pointer group"
+        className="flex flex-col items-center cursor-pointer group hidden md:flex"
       >
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cute-pink to-cute-lavender flex items-center justify-center text-white font-bold text-lg mb-2 border-2 border-transparent group-hover:border-cute-pink transition-colors overflow-hidden">
           {avatar ? (
@@ -73,7 +73,7 @@ export default function Sidebar({
         </div>
       </motion.button>
 
-      <div className="flex-1 flex flex-col space-y-4">
+      <div className="flex-1 flex flex-row md:flex-col justify-center md:justify-start space-x-2 md:space-x-0 md:space-y-4">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -125,7 +125,7 @@ export default function Sidebar({
         </motion.button>
       </div>
 
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-4 border-t border-gray-200 hidden md:block">
         <MapPinIcon className="w-6 h-6 text-gray-400" />
       </div>
     </motion.div>

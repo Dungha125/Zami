@@ -26,7 +26,7 @@ function App() {
 
   return (
     <Router>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-col md:flex-row h-screen overflow-hidden">
         <Sidebar
           username={username}
           userId={userId}
@@ -38,7 +38,7 @@ function App() {
           onAddFriendClick={() => setShowAddFriend(true)}
         />
         
-        <div className="flex-1 relative">
+        <div className="flex-1 relative mb-16 md:mb-0">
           <MapView userId={userId} username={username} />
           
           {showChat && (
@@ -66,13 +66,13 @@ function App() {
           )}
 
           {showProfile && (
-            <div className="absolute top-4 left-24 z-[1000]">
+            <div className="absolute top-4 left-4 md:left-24 z-[1000]">
               <Profile userId={userId} onClose={() => setShowProfile(false)} />
             </div>
           )}
 
           {showAddFriend && (
-            <div className="absolute top-4 left-24 z-[1000]">
+            <div className="absolute top-4 left-4 md:left-24 z-[1000]">
               <AddFriend userId={userId} onClose={() => setShowAddFriend(false)} />
             </div>
           )}
