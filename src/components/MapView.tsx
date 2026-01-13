@@ -39,6 +39,12 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
 }) {
   const wsRef = useRef<WebSocket | null>(null)
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const onLocationsUpdateRef = useRef(onLocationsUpdate)
+
+  // Keep ref in sync
+  useEffect(() => {
+    onLocationsUpdateRef.current = onLocationsUpdate
+  }, [onLocationsUpdate])
 
   useEffect(() => {
     // Get user's current location
@@ -84,7 +90,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
               const message = JSON.parse(event.data)
               
               if (message.type === 'location_update') {
-                onLocationsUpdate({
+                onLocationsUpdateRef.current({
                   [message.user_id]: message.location
                 })
               } else if (message.type === 'initial_locations') {
@@ -92,7 +98,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
                 message.locations.forEach((loc: Location) => {
                   locs[loc.user_id] = loc
                 })
-                onLocationsUpdate(locs)
+                onLocationsUpdateRef.current(locs)
               }
             }
 
@@ -118,7 +124,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
               const message = JSON.parse(event.data)
               
               if (message.type === 'location_update') {
-                onLocationsUpdate({
+                onLocationsUpdateRef.current({
                   [message.user_id]: message.location
                 })
               } else if (message.type === 'initial_locations') {
@@ -126,7 +132,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
                 message.locations.forEach((loc: Location) => {
                   locs[loc.user_id] = loc
                 })
-                onLocationsUpdate(locs)
+                onLocationsUpdateRef.current(locs)
               }
             }
             
@@ -152,7 +158,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
           const message = JSON.parse(event.data)
           
           if (message.type === 'location_update') {
-            onLocationsUpdate({
+            onLocationsUpdateRef.current({
               [message.user_id]: message.location
             })
           } else if (message.type === 'initial_locations') {
@@ -160,7 +166,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
             message.locations.forEach((loc: Location) => {
               locs[loc.user_id] = loc
             })
-            onLocationsUpdate(locs)
+            onLocationsUpdateRef.current(locs)
           }
         }
         
@@ -184,7 +190,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
         wsRef.current.close()
       }
     }
-  }, [userId, username, onLocationsUpdate])
+  }, [userId, username])
 
   return null
 }
