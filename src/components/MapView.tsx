@@ -106,11 +106,71 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
           },
           (error) => {
             console.error('Geolocation error:', error)
-            // Fallback - still connect WebSocket
+            // Fallback - still connect WebSocket even without geolocation
             const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
             wsRef.current = ws
+            
+            ws.onopen = () => {
+              console.log('WebSocket connected (no geolocation)')
+            }
+            
+            ws.onmessage = (event) => {
+              const message = JSON.parse(event.data)
+              
+              if (message.type === 'location_update') {
+                onLocationsUpdate({
+                  [message.user_id]: message.location
+                })
+              } else if (message.type === 'initial_locations') {
+                const locs: Record<string, Location> = {}
+                message.locations.forEach((loc: Location) => {
+                  locs[loc.user_id] = loc
+                })
+                onLocationsUpdate(locs)
+              }
+            }
+            
+            ws.onerror = (error) => {
+              console.error('WebSocket error:', error)
+            }
+            
+            ws.onclose = () => {
+              console.log('WebSocket closed')
+            }
           }
         )
+      } else {
+        // No geolocation API - still connect WebSocket
+        const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
+        wsRef.current = ws
+        
+        ws.onopen = () => {
+          console.log('WebSocket connected (no geolocation API)')
+        }
+        
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data)
+          
+          if (message.type === 'location_update') {
+            onLocationsUpdate({
+              [message.user_id]: message.location
+            })
+          } else if (message.type === 'initial_locations') {
+            const locs: Record<string, Location> = {}
+            message.locations.forEach((loc: Location) => {
+              locs[loc.user_id] = loc
+            })
+            onLocationsUpdate(locs)
+          }
+        }
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error)
+        }
+        
+        ws.onclose = () => {
+          console.log('WebSocket closed')
+        }
       }
     }
 
