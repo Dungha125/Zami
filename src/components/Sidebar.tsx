@@ -53,7 +53,7 @@ export default function Sidebar({
     <motion.div
       initial={{ x: -100 }}
       animate={{ x: 0 }}
-      className="w-20 bg-white/90 backdrop-blur-md shadow-xl flex flex-col items-center py-6 space-y-4 z-10"
+      className="w-20 bg-white/90 backdrop-blur-md shadow-xl flex flex-col items-center py-6 space-y-6"
     >
       <motion.button
         whileHover={{ scale: 1.1 }}

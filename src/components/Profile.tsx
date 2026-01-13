@@ -82,16 +82,16 @@ export default function Profile({ userId, onClose }: ProfileProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="cute-card w-full md:w-96 max-h-[90vh] overflow-y-auto"
+      exit={{ opacity: 0, scale: 0.9 }}
+      className="cute-card w-96 max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-md"
     >
-      <div className="p-5 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-10 bg-gradient-to-r from-cute-pink/10 to-cute-lavender/10">
-        <h2 className="cute-heading text-xl">👤 Hồ sơ</h2>
+      <div className="p-4 border-b-2 border-cute-pink/20 flex items-center justify-between sticky top-0 bg-white/95 z-10">
+        <h2 className="text-xl font-bold text-cute-pink">👤 Hồ sơ</h2>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-cute-pink/20 rounded-xl transition-colors text-gray-600 hover:text-cute-pink"
+          className="p-2 hover:bg-cute-pink/20 rounded-full transition-colors"
         >
           <XMarkIcon className="w-5 h-5" />
         </button>
