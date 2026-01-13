@@ -7,6 +7,8 @@ import axios from 'axios'
 interface VideoCallProps {
   userId: string
   onClose: () => void
+  incomingOffer?: RTCSessionDescriptionInit
+  incomingCallerId?: string
 }
 
 interface Friend {
@@ -15,7 +17,7 @@ interface Friend {
   avatar: string | null
 }
 
-export default function VideoCall({ userId, onClose }: VideoCallProps) {
+export default function VideoCall({ userId, onClose, incomingOffer, incomingCallerId }: VideoCallProps) {
   const [isCallActive, setIsCallActive] = useState(false)
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
@@ -48,14 +50,19 @@ export default function VideoCall({ userId, onClose }: VideoCallProps) {
 
     ws.onopen = () => {
       setCallStatus('Đã kết nối')
+      // Handle incoming offer if it exists (from notification)
+      if (incomingOffer && incomingCallerId) {
+        handleOffer(incomingOffer, incomingCallerId)
+      }
     }
 
     ws.onmessage = async (event) => {
       const message = JSON.parse(event.data)
       
       if (message.type === 'webrtc_offer') {
-        if (message.sender_id !== userId) {
-          setCallStatus(`Cuộc gọi từ ${message.sender_id}`)
+        // Incoming calls are now handled by App.tsx via CallNotification
+        // This is only for handling offers during an active call
+        if (isCallActive && message.sender_id !== userId && message.sender_id === targetUserIdRef.current) {
           await handleOffer(message.offer, message.sender_id)
         }
       } else if (message.type === 'webrtc_answer') {
@@ -83,7 +90,7 @@ export default function VideoCall({ userId, onClose }: VideoCallProps) {
       ws.close()
       endCall()
     }
-  }, [userId])
+  }, [userId, incomingOffer, incomingCallerId])
 
   const startCall = async (targetUserId: string) => {
     if (!targetUserId) {
@@ -325,7 +332,7 @@ export default function VideoCall({ userId, onClose }: VideoCallProps) {
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="cute-card w-96 bg-white/95 backdrop-blur-md"
+      className="cute-card w-full md:w-96 bg-white/95 backdrop-blur-md"
     >
       <div className="p-4 border-b-2 border-cute-pink/20 flex items-center justify-between">
         <h2 className="text-xl font-bold text-cute-pink">📹 Video Call</h2>

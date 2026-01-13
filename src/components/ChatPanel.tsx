@@ -27,20 +27,39 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
     const ws = new WebSocket(getWebSocketUrl(`ws/${userId}`))
     wsRef.current = ws
 
+    ws.onopen = () => {
+      console.log('Chat WebSocket connected')
+    }
+
     ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'message') {
-        setMessages(prev => [...prev, {
-          sender_id: message.sender_id,
-          content: message.content,
-          sticker: message.sticker,
-          timestamp: message.timestamp
-        }])
+      try {
+        const message = JSON.parse(event.data)
+        if (message.type === 'message' && message.sender_id !== userId) {
+          setMessages(prev => [...prev, {
+            sender_id: message.sender_id,
+            content: message.content,
+            sticker: message.sticker,
+            timestamp: message.timestamp
+          }])
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error)
       }
     }
 
+    ws.onerror = (error) => {
+      console.error('Chat WebSocket error:', error)
+    }
+
+    ws.onclose = () => {
+      console.log('Chat WebSocket closed')
+    }
+
     return () => {
-      ws.close()
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
     }
   }, [userId])
 
@@ -82,7 +101,7 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className="cute-card w-96 h-[600px] flex flex-col shadow-2xl"
+      className="cute-card w-full md:w-96 h-[500px] md:h-[600px] flex flex-col shadow-2xl bg-white/95 backdrop-blur-md"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b-2 border-cute-pink/20">
@@ -96,35 +115,41 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        <AnimatePresence>
-          {messages.map((msg, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[75%] rounded-2xl p-3 ${
-                  msg.sender_id === userId
-                    ? 'bg-gradient-to-r from-cute-pink to-cute-lavender text-white'
-                    : 'bg-white/80 text-gray-800'
-                }`}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            <p>Chưa có tin nhắn. Hãy bắt đầu trò chuyện!</p>
+          </div>
+        ) : (
+          <AnimatePresence>
+            {messages.map((msg, index) => (
+              <motion.div
+                key={`${msg.sender_id}-${index}-${msg.timestamp}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}
               >
-                {msg.sticker && (
-                  <div className="text-4xl mb-1">
-                    <StickerPicker onSelect={() => {}} selectedSticker={msg.sticker} displayOnly />
-                  </div>
-                )}
-                {msg.content && <p className="text-sm">{msg.content}</p>}
-                <p className="text-xs opacity-70 mt-1">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                <div
+                  className={`max-w-[75%] rounded-2xl p-3 shadow-sm ${
+                    msg.sender_id === userId
+                      ? 'bg-gradient-to-r from-cute-pink to-cute-lavender text-white'
+                      : 'bg-white text-gray-800 border border-gray-200'
+                  }`}
+                >
+                  {msg.sticker && (
+                    <div className="text-4xl mb-1 flex justify-center">
+                      <StickerPicker onSelect={() => {}} selectedSticker={msg.sticker} displayOnly />
+                    </div>
+                  )}
+                  {msg.content && <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>}
+                  <p className={`text-xs mt-1 ${msg.sender_id === userId ? 'opacity-80' : 'opacity-60'}`}>
+                    {new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
         <div ref={messagesEndRef} />
       </div>
 

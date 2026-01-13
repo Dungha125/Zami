@@ -52,7 +52,7 @@ export default function Login({ onLogin }: LoginProps) {
           className="text-center mb-8"
         >
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cute-pink to-cute-lavender bg-clip-text text-transparent mb-2">
-            🗺️ Jagat Clone
+            Zami
           </h1>
           <p className="text-gray-600">Kết nối với bạn bè, chia sẻ vị trí real-time</p>
         </motion.div>
@@ -72,7 +72,6 @@ export default function Login({ onLogin }: LoginProps) {
                 size="large"
                 text="signin_with"
                 shape="rectangular"
-                locale="vi"
               />
             </div>
           )}
