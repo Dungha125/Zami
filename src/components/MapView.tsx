@@ -101,6 +101,7 @@ function MapUpdater({ userId, username, onLocationsUpdate }: {
             },
             geoOptions
           )
+        }
 
         ws.onmessage = (event) => {
           const message = JSON.parse(event.data)
