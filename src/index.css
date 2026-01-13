@@ -11,15 +11,31 @@
 
 @layer components {
   .cute-button {
-    @apply px-4 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200;
+    @apply px-6 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 bg-gradient-to-r from-cute-pink to-cute-lavender text-white;
+  }
+  
+  .cute-button-secondary {
+    @apply px-6 py-3 rounded-2xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 bg-white/90 text-cute-pink border-2 border-cute-pink/30 hover:border-cute-pink;
   }
   
   .cute-card {
-    @apply bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border-2 border-white/50;
+    @apply bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/50;
   }
   
   .cute-input {
-    @apply px-4 py-3 rounded-2xl border-2 border-cute-pink/30 focus:border-cute-pink focus:outline-none transition-all;
+    @apply px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-cute-pink focus:outline-none transition-all bg-white/90;
+  }
+  
+  .cute-heading {
+    @apply text-2xl font-bold text-gray-800;
+  }
+  
+  .cute-subheading {
+    @apply text-lg font-semibold text-gray-700;
+  }
+  
+  .cute-text {
+    @apply text-gray-600;
   }
 }
 

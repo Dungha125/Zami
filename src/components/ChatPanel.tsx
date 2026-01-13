@@ -233,17 +233,17 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className="cute-card w-full max-w-md h-[600px] flex flex-col shadow-2xl"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="cute-card w-full h-full md:h-[600px] md:max-w-md flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b-2 border-cute-pink/20">
-        <h2 className="text-xl font-bold text-cute-pink">💬 Chat</h2>
+      <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-gradient-to-r from-cute-pink/10 to-cute-lavender/10">
+        <h2 className="cute-heading text-xl text-gray-800">💬 Chat</h2>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-cute-pink/20 rounded-full transition-colors"
+          className="p-2 hover:bg-cute-pink/20 rounded-xl transition-colors text-gray-600 hover:text-cute-pink"
         >
           <XMarkIcon className="w-5 h-5" />
         </button>
@@ -289,30 +289,30 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
       ) : (
         <>
           {/* Chat header with friend info */}
-          <div className="flex items-center gap-3 p-4 border-b-2 border-cute-pink/20 bg-white/50">
+          <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-gradient-to-r from-cute-pink/10 to-cute-lavender/10">
             <button
               onClick={() => setSelectedFriendId(null)}
-              className="text-cute-pink hover:text-pink-600 font-medium text-sm"
+              className="text-cute-pink hover:text-pink-600 font-medium text-sm px-2 py-1 rounded-lg hover:bg-cute-pink/20 transition-colors"
             >
               ← Quay lại
             </button>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cute-pink to-cute-lavender flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cute-pink to-cute-lavender flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0 shadow-md">
               {selectedFriend?.avatar ? (
                 <img src={selectedFriend.avatar} alt={selectedFriend.username} className="w-full h-full object-cover" />
               ) : (
                 selectedFriend?.username.charAt(0).toUpperCase()
               )}
             </div>
-            <div className="flex-1">
-              <div className="font-semibold text-gray-800">{selectedFriend?.username}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-gray-800 truncate">{selectedFriend?.username}</div>
               {friendTyping && (
-                <div className="text-xs text-gray-500">Đang nhập...</div>
+                <div className="text-xs cute-text">Đang nhập...</div>
               )}
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
             <AnimatePresence>
               {messages.map((msg) => {
                 const isOwnMessage = msg.sender_id === userId
@@ -362,7 +362,7 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t-2 border-cute-pink/20">
+          <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-cute-pink/5 to-cute-lavender/5">
             <AnimatePresence>
               {showStickers && (
                 <motion.div
@@ -376,12 +376,12 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
               )}
             </AnimatePresence>
             
-            <div className="flex gap-2">
+            <div className="flex gap-3 items-center">
               <button
                 onClick={() => setShowStickers(!showStickers)}
-                className="p-2 hover:bg-cute-pink/20 rounded-full transition-colors"
+                className="p-3 hover:bg-cute-pink/20 rounded-xl transition-colors text-cute-pink hover:text-pink-600"
               >
-                <FaceSmileIcon className="w-5 h-5 text-cute-pink" />
+                <FaceSmileIcon className="w-5 h-5" />
               </button>
               
               <input
@@ -394,10 +394,10 @@ export default function ChatPanel({ userId, onClose }: ChatPanelProps) {
               />
               
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={sendMessage}
-                className="p-2 bg-gradient-to-r from-cute-pink to-cute-lavender text-white rounded-full"
+                className="p-3 bg-gradient-to-r from-cute-pink to-cute-lavender text-white rounded-xl shadow-md hover:shadow-lg transition-all"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
               </motion.button>
